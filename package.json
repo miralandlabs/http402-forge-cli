@@ -1,0 +1,13 @@
+{
+  "name": "http402-forge-cli-root",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @http402/forge-client && npm run build -w @http402/forge-cli && npm run build -w @http402/forge-mcp",
+    "forge": "node packages/forge-cli/dist/cli.js"
+  },
+  "author": "Miraland Labs",
+  "license": "Apache-2.0"
+}

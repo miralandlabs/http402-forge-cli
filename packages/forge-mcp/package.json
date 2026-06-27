@@ -1,0 +1,30 @@
+{
+  "name": "@http402/forge-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for http402 Forge Digital Bazaar",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "forge-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@http402/forge-client": "0.1.0",
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "@solana/web3.js": "^1.91.1",
+    "bs58": "^5.0.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "typescript": "^5.4.5"
+  },
+  "license": "Apache-2.0"
+}
