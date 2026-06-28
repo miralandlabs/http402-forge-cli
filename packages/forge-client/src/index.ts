@@ -35,4 +35,9 @@ export {
   forgeDelist,
 } from './seller.js';
 
-export { createForgePayFetch, createPay402Fetch, PR402_FACILITATOR_URL_PREVIEW } from './payment.js';
+export {
+  createForgePayFetch,
+  createPay402Fetch,
+  PR402_FACILITATOR_URL_PRODUCTION,
+  PR402_FACILITATOR_URL_PREVIEW,
+} from './payment.js';

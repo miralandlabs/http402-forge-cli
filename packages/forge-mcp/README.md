@@ -21,16 +21,16 @@ Payment signing uses [`@pr402/buyer-typescript`](https://www.npmjs.com/package/@
       "command": "npx",
       "args": ["-y", "@http402/forge-mcp"],
       "env": {
-        "FORGE_API_BASE": "https://preview.forge.http402.trade",
-        "FACILITATOR_BASE": "https://preview.ipay.sh",
-        "FORGE_SECRET_KEY": "[base58-or-json-array-secret-key]"
+        "FORGE_KEYPAIR": "/absolute/path/to/keypair.json"
       }
     }
   }
 }
 ```
 
-Alternatively set `FORGE_KEYPAIR=/absolute/path/to/keypair.json`.
+Alternatively set `FORGE_KEYPAIR=/absolute/path/to/keypair.json` or `FORGE_SECRET_KEY`.
+
+Defaults target **production** (Solana mainnet): `https://forge.http402.trade` and `https://ipay.sh`. For devnet preview, set `FORGE_API_BASE=https://preview.forge.http402.trade` and `FACILITATOR_BASE=https://preview.ipay.sh`.
 
 ## Tools
 

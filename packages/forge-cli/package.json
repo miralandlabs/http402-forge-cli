@@ -1,6 +1,6 @@
 {
   "name": "@http402/forge-cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "CLI for http402 Forge Digital Bazaar — list, buy, publish, delist",
   "type": "module",
   "repository": {
@@ -24,7 +24,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@http402/forge-client": "^0.1.1",
+    "@http402/forge-client": "^0.1.2",
     "@solana/web3.js": "^1.91.1",
     "bs58": "^5.0.0"
   },

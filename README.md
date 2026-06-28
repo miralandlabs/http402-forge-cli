@@ -19,14 +19,20 @@ npm install -g @http402/forge-cli
 # or without global install:
 npx @http402/forge-cli list --pretty
 
-export FORGE_API_BASE=https://preview.forge.http402.trade
-export FACILITATOR_BASE=https://preview.ipay.sh
 export FORGE_KEYPAIR=/path/to/keypair.json
 
 forge list --pretty
 forge buy <listing-uuid> --verify
 forge vault status
 forge publish --asset ./file.pdf --title "My PDF" --price 0.05
+```
+
+Defaults use **production** (mainnet): `https://forge.http402.trade`, `https://ipay.sh`. For devnet preview:
+
+```bash
+export FORGE_API_BASE=https://preview.forge.http402.trade
+export FACILITATOR_BASE=https://preview.ipay.sh
+export FORGE_RPC_URL=https://api.devnet.solana.com
 ```
 
 SDK:
@@ -44,8 +50,6 @@ npm install @http402/forge-client
       "command": "npx",
       "args": ["-y", "@http402/forge-mcp"],
       "env": {
-        "FORGE_API_BASE": "https://preview.forge.http402.trade",
-        "FACILITATOR_BASE": "https://preview.ipay.sh",
         "FORGE_KEYPAIR": "/absolute/path/to/keypair.json"
       }
     }

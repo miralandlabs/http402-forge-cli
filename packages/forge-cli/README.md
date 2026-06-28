@@ -14,14 +14,16 @@ npx @http402/forge-cli help
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `FORGE_API_BASE` | Forge API URL | `https://preview.forge.http402.trade` |
-| `FACILITATOR_BASE` | x402 facilitator URL | `https://preview.ipay.sh` |
+| `FORGE_API_BASE` | Forge API URL | `https://forge.http402.trade` |
+| `FACILITATOR_BASE` | x402 facilitator URL | `https://ipay.sh` |
 | `FORGE_KEYPAIR` | Path to Solana keypair JSON file | — |
 | `FORGE_SECRET_KEY` | Base58 or JSON-array secret key | — |
 | `BUYER_SECRET_KEY` | Alias for `FORGE_SECRET_KEY` | — |
-| `FORGE_RPC_URL` | Solana RPC (vault activation) | `https://api.devnet.solana.com` |
+| `FORGE_RPC_URL` | Solana RPC (vault activation) | `https://api.mainnet-beta.solana.com` |
 
 Set `FORGE_KEYPAIR` **or** `FORGE_SECRET_KEY` for signed operations (buy, publish, delist, vault).
+
+For **devnet / preview** testing, override `FORGE_API_BASE`, `FACILITATOR_BASE`, and `FORGE_RPC_URL` (see `@pr402/buyer-typescript` preview URLs).
 
 ## Usage
 

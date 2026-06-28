@@ -14,8 +14,8 @@ Configure URLs and keys in your app (or via `process.env`):
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `FORGE_API_BASE` | Forge API URL | `https://preview.forge.http402.trade` |
-| `FACILITATOR_BASE` | x402 facilitator URL | `https://preview.ipay.sh` |
+| `FORGE_API_BASE` | Forge API URL | `https://forge.http402.trade` |
+| `FACILITATOR_BASE` | x402 facilitator URL | `https://ipay.sh` |
 | `FORGE_KEYPAIR` | Path to Solana keypair JSON file | — |
 | `FORGE_SECRET_KEY` | Base58 or JSON-array secret key | — |
 
@@ -30,8 +30,8 @@ import {
   forgePublish,
 } from '@http402/forge-client';
 
-const forgeApiBase = process.env.FORGE_API_BASE ?? 'https://preview.forge.http402.trade';
-const facilitatorBase = process.env.FACILITATOR_BASE ?? 'https://preview.ipay.sh';
+const forgeApiBase = process.env.FORGE_API_BASE ?? 'https://forge.http402.trade';
+const facilitatorBase = process.env.FACILITATOR_BASE ?? 'https://ipay.sh';
 const keypair = Keypair.fromSecretKey(/* your secret */);
 
 // Browse catalog

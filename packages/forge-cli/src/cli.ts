@@ -54,18 +54,18 @@ export function loadConfig(argv: string[]): CliConfig {
     apiBase: (
       opts.get('api') ??
       process.env.FORGE_API_BASE ??
-      'https://preview.forge.http402.trade'
+      'https://forge.http402.trade'
     ).replace(/\/$/, ''),
     facilitatorBase: (
       opts.get('facilitator') ??
       process.env.FACILITATOR_BASE ??
-      'https://preview.ipay.sh'
+      'https://ipay.sh'
     ).replace(/\/$/, ''),
     rpcUrl:
       opts.get('rpc') ??
       process.env.FORGE_RPC_URL ??
       process.env.SOLANA_RPC_URL ??
-      'https://api.devnet.solana.com',
+      'https://api.mainnet-beta.solana.com',
     keypair: loadKeypairFromEnv(),
     json: flags.has('json') || !flags.has('pretty'),
     pretty: flags.has('pretty'),

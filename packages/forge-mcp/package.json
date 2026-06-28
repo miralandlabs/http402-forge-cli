@@ -1,6 +1,6 @@
 {
   "name": "@http402/forge-mcp",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "MCP server for http402 Forge Digital Bazaar",
   "type": "module",
   "repository": {
@@ -25,7 +25,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@http402/forge-client": "^0.1.1",
+    "@http402/forge-client": "^0.1.2",
     "@modelcontextprotocol/sdk": "^1.12.0",
     "@solana/web3.js": "^1.91.1",
     "bs58": "^5.0.0",

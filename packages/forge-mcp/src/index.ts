@@ -50,8 +50,8 @@ function loadKeypair(): Keypair | null {
   return Keypair.fromSecretKey(bs58.decode(raw));
 }
 
-const forgeApiBase = env('FORGE_API_BASE', 'https://preview.forge.http402.trade');
-const facilitatorBase = env('FACILITATOR_BASE', 'https://preview.ipay.sh');
+const forgeApiBase = env('FORGE_API_BASE', 'https://forge.http402.trade');
+const facilitatorBase = env('FACILITATOR_BASE', 'https://ipay.sh');
 const payer = loadKeypair();
 const pay402Fetch = payer
   ? createForgePayFetch(payer, facilitatorBase)
