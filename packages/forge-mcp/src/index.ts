@@ -3,6 +3,8 @@
  * @http402/forge-mcp — MCP server for Digital Bazaar (list, preview, buy, publish, delist, vault).
  */
 import 'dotenv/config';
+import { readFileSync } from 'fs';
+import { createRequire } from 'module';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -21,6 +23,9 @@ import {
   forgeVaultStatus,
 } from '@http402/forge-client';
 
+const require = createRequire(import.meta.url);
+const { version: packageVersion } = require('../package.json') as { version: string };
+
 function env(name: string, fallback?: string): string {
   const v = process.env[name]?.trim();
   if (v) return v.replace(/\/$/, '');
@@ -29,9 +34,15 @@ function env(name: string, fallback?: string): string {
 }
 
 function loadKeypair(): Keypair | null {
-  const raw =
-    process.env.FORGE_SECRET_KEY?.trim() ??
-    process.env.BUYER_SECRET_KEY?.trim();
+  const path = process.env.FORGE_KEYPAIR?.trim();
+  const rawEnv =
+    process.env.FORGE_SECRET_KEY?.trim() ?? process.env.BUYER_SECRET_KEY?.trim();
+  if (path) {
+    return Keypair.fromSecretKey(
+      Uint8Array.from(JSON.parse(readFileSync(path, 'utf8')) as number[]),
+    );
+  }
+  const raw = rawEnv;
   if (!raw) return null;
   if (raw.startsWith('[')) {
     return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(raw) as number[]));
@@ -39,7 +50,7 @@ function loadKeypair(): Keypair | null {
   return Keypair.fromSecretKey(bs58.decode(raw));
 }
 
-const forgeApiBase = env('FORGE_API_BASE', 'http://127.0.0.1:8092');
+const forgeApiBase = env('FORGE_API_BASE', 'https://preview.forge.http402.trade');
 const facilitatorBase = env('FACILITATOR_BASE', 'https://preview.ipay.sh');
 const payer = loadKeypair();
 const pay402Fetch = payer
@@ -47,7 +58,7 @@ const pay402Fetch = payer
   : null;
 
 const server = new Server(
-  { name: '@http402/forge-mcp', version: '0.1.0' },
+  { name: '@http402/forge-mcp', version: packageVersion },
   { capabilities: { tools: {} } },
 );
 
@@ -121,7 +132,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 }));
 
 function requirePayer(): Keypair {
-  if (!payer) throw new Error('FORGE_SECRET_KEY not configured');
+  if (!payer) {
+    throw new Error('Set FORGE_KEYPAIR or FORGE_SECRET_KEY (or BUYER_SECRET_KEY)');
+  }
   return payer;
 }
 
@@ -154,7 +167,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === 'forge_purchase') {
-      if (!pay402Fetch) throw new Error('FORGE_SECRET_KEY not configured');
+      if (!pay402Fetch) {
+        throw new Error('Set FORGE_KEYPAIR or FORGE_SECRET_KEY (or BUYER_SECRET_KEY)');
+      }
       const id = String(a.listing_id ?? '');
       const kp = requirePayer();
       const { bytes, contentType, saleId, verify } = await forgeBuy({

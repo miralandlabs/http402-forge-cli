@@ -1,12 +1,21 @@
 {
   "name": "@http402/forge-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for http402 Forge Digital Bazaar",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/miraland-labs/http402-forge-cli.git",
+    "directory": "packages/forge-mcp"
+  },
   "main": "dist/index.js",
   "bin": {
     "forge-mcp": "dist/index.js"
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
@@ -16,7 +25,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@http402/forge-client": "0.1.0",
+    "@http402/forge-client": "^0.1.1",
     "@modelcontextprotocol/sdk": "^1.12.0",
     "@solana/web3.js": "^1.91.1",
     "bs58": "^5.0.0",

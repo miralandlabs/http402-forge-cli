@@ -1,5 +1,4 @@
 import { readFileSync } from 'fs';
-import { readFile } from 'fs/promises';
 import { Connection, Keypair, VersionedTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
 import {

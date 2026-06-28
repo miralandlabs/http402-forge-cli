@@ -1,8 +1,13 @@
 {
   "name": "@http402/forge-client",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "TypeScript SDK for http402 Forge Digital Bazaar — buy, publish, delist, vault",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/miraland-labs/http402-forge-cli.git",
+    "directory": "packages/forge-client"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -13,7 +18,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "scripts": {
     "build": "tsc",
@@ -21,9 +27,6 @@
   },
   "publishConfig": {
     "access": "public"
-  },
-  "peerDependencies": {
-    "@pr402/buyer-typescript": ">=1.0.0"
   },
   "dependencies": {
     "@pr402/buyer-typescript": "^1.0.0",

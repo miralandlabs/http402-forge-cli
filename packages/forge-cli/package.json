@@ -1,12 +1,21 @@
 {
   "name": "@http402/forge-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI for http402 Forge Digital Bazaar — list, buy, publish, delist",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/miraland-labs/http402-forge-cli.git",
+    "directory": "packages/forge-cli"
+  },
   "bin": {
     "forge": "dist/cli-entry.js"
   },
   "main": "./dist/cli.js",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build"
@@ -15,7 +24,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@http402/forge-client": "0.1.0",
+    "@http402/forge-client": "^0.1.1",
     "@solana/web3.js": "^1.91.1",
     "bs58": "^5.0.0"
   },
