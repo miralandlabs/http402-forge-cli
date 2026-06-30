@@ -9,6 +9,8 @@ import {
   forgePreviewMeta,
   forgeProvisionVaultTx,
   forgePublish,
+  forgeRedownload,
+  forgeSaleFeedback,
   forgeSearch,
   forgeVaultStatus,
 } from '@http402/forge-client';
@@ -137,11 +139,13 @@ export async function runCli(argv: string[]): Promise<void> {
     console.log(`forge — http402 Digital Bazaar CLI
 
 Usage:
-  forge list [--q text] [--category art] [--agent-friendly] [--sort trending] [--limit 20]
+  forge list [--q text] [--category art] [--agent-friendly] [--seller-wallet ADDR] [--sort trending] [--limit 20] [--offset 0]
   forge get <listing-id>
   forge preview <listing-id>
   forge buy <listing-id> [--out path] [--verify]
-  forge publish --asset path --title "..." --price 0.05 [--category art] [--description "..."]
+  forge redownload <listing-id> [--out path]
+  forge feedback <sale-id> --signal as_described|corrupt|misleading|hash_mismatch
+  forge publish --asset path --title "..." --price 0.05 [--display-name "..."] [--category art] [--description "..."]
   forge delist <listing-id>
   forge vault status
   forge vault activate [--asset USDC] [--send|--print-tx]
@@ -160,6 +164,7 @@ Flags: --api --facilitator --rpc --json (default) --pretty`);
       agentFriendly: hasFlag(rest, 'agent-friendly') ? true : undefined,
       sort: getOpt(rest, 'sort') ?? 'trending',
       limit: getOpt(rest, 'limit') ? Number(getOpt(rest, 'limit')) : 20,
+      offset: getOpt(rest, 'offset') ? Number(getOpt(rest, 'offset')) : undefined,
     });
     if (cfg.pretty) {
       printOut(cfg, result, [
@@ -211,6 +216,47 @@ Flags: --api --facilitator --rpc --json (default) --pretty`);
     return;
   }
 
+  if (cmd === 'redownload') {
+    const id = rest.find((a) => !a.startsWith('--'));
+    if (!id) throw new Error('usage: forge redownload <listing-id>');
+    const kp = requireKeypair(cfg);
+    const out = getOpt(rest, 'out') ?? `forge-${id.slice(0, 8)}.bin`;
+    const result = await forgeRedownload({
+      ...clientOpts,
+      listingId: id,
+      buyerWallet: kp.publicKey.toBase58(),
+      buyerKeypair: kp,
+      outputPath: out,
+    });
+    printOut(cfg, { ...result, bytes: result.bytes.length, outputPath: out });
+    return;
+  }
+
+  if (cmd === 'feedback') {
+    const saleId = rest.find((a) => !a.startsWith('--'));
+    const signal = getOpt(rest, 'signal') as
+      | 'as_described'
+      | 'corrupt'
+      | 'misleading'
+      | 'hash_mismatch'
+      | undefined;
+    if (!saleId || !signal) {
+      throw new Error(
+        'usage: forge feedback <sale-id> --signal as_described|corrupt|misleading|hash_mismatch',
+      );
+    }
+    const kp = requireKeypair(cfg);
+    await forgeSaleFeedback({
+      ...clientOpts,
+      saleId,
+      buyerWallet: kp.publicKey.toBase58(),
+      buyerKeypair: kp,
+      outcome: signal,
+    });
+    printOut(cfg, { feedback: signal, saleId });
+    return;
+  }
+
   if (cmd === 'publish') {
     const kp = requireKeypair(cfg);
     const asset = getOpt(rest, 'asset');
@@ -231,6 +277,7 @@ Flags: --api --facilitator --rpc --json (default) --pretty`);
       agentFriendly: hasFlag(rest, 'agent-friendly'),
       tags: getOpt(rest, 'tags'),
       license: getOpt(rest, 'license'),
+      displayName: getOpt(rest, 'display-name'),
     });
     printOut(cfg, listing);
     return;

@@ -19,10 +19,16 @@ export {
   forgeGetListing,
   forgeSearch,
   forgeBuy,
+  forgeBuyerPurchases,
+  type ForgeBuyerPurchase,
+  type ForgeBuyerPurchasesResponse,
   forgeSaleFeedback,
   forgePreviewMeta,
+  forgeRedownload,
   verifyListingContent,
 } from './buyer.js';
+
+export { forgePortalManifest, forgeX402Resources } from './discovery.js';
 
 export {
   guessContentType,

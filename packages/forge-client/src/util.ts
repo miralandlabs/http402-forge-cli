@@ -42,3 +42,30 @@ export function apiBase(forgeApiBase: string): string {
 export function defaultFetch(fetchFn?: typeof fetch): typeof fetch {
   return fetchFn ?? fetch;
 }
+
+/** Parse JSON error bodies from forge-api into a short message. */
+export function parseForgeApiError(status: number, bodyText: string): string {
+  try {
+    const raw = JSON.parse(bodyText) as Record<string, unknown>;
+    const code = raw.error ?? raw.code;
+    const message = raw.message ?? raw.error;
+    if (typeof message === 'string' && message.length > 0) {
+      if (typeof code === 'string' && code !== message) {
+        return `${code}: ${message}`;
+      }
+      return message;
+    }
+    if (Array.isArray(raw.details)) {
+      const first = raw.details[0] as Record<string, unknown> | undefined;
+      if (first?.message) return String(first.message);
+    }
+  } catch {
+    /* not JSON */
+  }
+  return bodyText.slice(0, 240) || `HTTP ${status}`;
+}
+
+export async function readForgeApiError(res: Response): Promise<string> {
+  const text = await res.text();
+  return parseForgeApiError(res.status, text);
+}

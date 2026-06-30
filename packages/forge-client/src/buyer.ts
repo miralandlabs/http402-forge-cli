@@ -7,7 +7,7 @@ import type {
   ForgeListing,
 } from './types.js';
 import { sha256Hex, signForgeChallenge } from './auth.js';
-import { parseListing, apiBase, defaultFetch } from './util.js';
+import { parseListing, apiBase, defaultFetch, readForgeApiError } from './util.js';
 
 export function verifyListingContent(
   listing: Pick<ForgeListing, 'contentHash'>,
@@ -26,7 +26,9 @@ export async function forgeGetListing(
   const res = await defaultFetch(options.fetchFn)(
     `${base}/api/v1/listings/${options.listingId}`,
   );
-  if (!res.ok) throw new Error(`forge get listing HTTP ${res.status}`);
+  if (!res.ok) {
+    throw new Error(`forge get listing HTTP ${res.status}: ${await readForgeApiError(res)}`);
+  }
   return parseListing((await res.json()) as Record<string, unknown>);
 }
 
@@ -54,7 +56,9 @@ export async function forgeSearch(
   if (options.offset != null) params.set('offset', String(options.offset));
 
   const res = await defaultFetch(options.fetchFn)(`${base}/api/v1/listings?${params}`);
-  if (!res.ok) throw new Error(`forge list HTTP ${res.status}`);
+  if (!res.ok) {
+    throw new Error(`forge list HTTP ${res.status}: ${await readForgeApiError(res)}`);
+  }
   const data = (await res.json()) as {
     items: Record<string, unknown>[];
     total: number;
@@ -180,6 +184,142 @@ export async function forgeBuy(
   }
 
   return { bytes: buf, contentType, saleId, verify };
+}
+
+export async function forgeRedownload(
+  options: ForgeClientOptions & {
+    listingId: string;
+    buyerWallet: string;
+    buyerKeypair: Keypair;
+    outputPath?: string;
+  },
+): Promise<ForgeBuyResult> {
+  const base = apiBase(options.forgeApiBase);
+  const fetchFn = defaultFetch(options.fetchFn);
+
+  const q = new URLSearchParams({
+    buyer_wallet: options.buyerWallet,
+    listing_id: options.listingId,
+  });
+  const challengeRes = await fetchFn(
+    `${base}/api/v1/buyer/redownload-challenge?${q}`,
+    { cache: 'no-store' },
+  );
+  if (!challengeRes.ok) {
+    throw new Error(
+      `forge redownload challenge HTTP ${challengeRes.status}: ${await readForgeApiError(challengeRes)}`,
+    );
+  }
+  const challengeJson = (await challengeRes.json()) as {
+    message?: string;
+    saleId?: string;
+    sale_id?: string;
+  };
+  const message = String(challengeJson.message ?? '');
+  const signature = signForgeChallenge(options.buyerKeypair, message);
+  const saleId = String(challengeJson.saleId ?? challengeJson.sale_id ?? '');
+
+  const url = `${base}/api/v1/listings/${options.listingId}/redownload`;
+  const res = await fetchFn(url, {
+    headers: {
+      'X-Forge-Buyer-Wallet': Buffer.from(options.buyerWallet, 'utf8').toString('base64'),
+      'X-Forge-Buyer-Challenge': Buffer.from(message, 'utf8').toString('base64'),
+      'X-Forge-Buyer-Signature': signature,
+    },
+  });
+  if (!res.ok) {
+    throw new Error(
+      `forge redownload HTTP ${res.status}: ${await readForgeApiError(res)}`,
+    );
+  }
+  const buf = Buffer.from(await res.arrayBuffer());
+  const contentType = res.headers.get('content-type');
+  if (options.outputPath) {
+    const fs = await import('fs/promises');
+    await fs.writeFile(options.outputPath, buf);
+  }
+  return { bytes: buf, contentType, saleId: saleId || undefined, verify: undefined };
+}
+
+export interface ForgeBuyerPurchase {
+  saleId: string;
+  listingId: string;
+  listingTitle: string;
+  listingStatus: string;
+  sellerWallet: string;
+  amountMicroUsdc: number;
+  txSignature: string;
+  settledAt: string;
+  feedbackOutcome?: string;
+}
+
+export interface ForgeBuyerPurchasesResponse {
+  items: ForgeBuyerPurchase[];
+  total: number;
+}
+
+function parseBuyerPurchase(raw: Record<string, unknown>): ForgeBuyerPurchase {
+  return {
+    saleId: String(raw.saleId ?? raw.sale_id ?? ''),
+    listingId: String(raw.listingId ?? raw.listing_id ?? ''),
+    listingTitle: String(raw.listingTitle ?? raw.listing_title ?? ''),
+    listingStatus: String(raw.listingStatus ?? raw.listing_status ?? ''),
+    sellerWallet: String(raw.sellerWallet ?? raw.seller_wallet ?? ''),
+    amountMicroUsdc: Number(raw.amountMicroUsdc ?? raw.amount_micro_usdc ?? 0),
+    txSignature: String(raw.txSignature ?? raw.tx_signature ?? ''),
+    settledAt: String(raw.settledAt ?? raw.settled_at ?? ''),
+    feedbackOutcome:
+      raw.feedbackOutcome != null || raw.feedback_outcome != null
+        ? String(raw.feedbackOutcome ?? raw.feedback_outcome)
+        : undefined,
+  };
+}
+
+export async function forgeBuyerPurchases(
+  options: ForgeClientOptions & {
+    buyerWallet: string;
+    buyerKeypair: Keypair;
+    limit?: number;
+    offset?: number;
+  },
+): Promise<ForgeBuyerPurchasesResponse> {
+  const base = apiBase(options.forgeApiBase);
+  const fetchFn = defaultFetch(options.fetchFn);
+  const params = new URLSearchParams({ buyer_wallet: options.buyerWallet });
+  if (options.limit != null) params.set('limit', String(options.limit));
+  if (options.offset != null) params.set('offset', String(options.offset));
+  const challengeRes = await fetchFn(`${base}/api/v1/buyer/purchases-challenge?${params}`, {
+    cache: 'no-store',
+  });
+  if (!challengeRes.ok) {
+    throw new Error(
+      `forge buyer purchases challenge HTTP ${challengeRes.status}: ${await readForgeApiError(challengeRes)}`,
+    );
+  }
+  const challengeJson = (await challengeRes.json()) as { message?: string };
+  const message = String(challengeJson.message ?? '');
+  const signature = signForgeChallenge(options.buyerKeypair, message);
+  const res = await fetchFn(`${base}/api/v1/buyer/purchases?${params}`, {
+    cache: 'no-store',
+    headers: {
+      'X-Forge-Buyer-Wallet': Buffer.from(options.buyerWallet, 'utf8').toString('base64'),
+      'X-Forge-Buyer-Challenge': Buffer.from(message, 'utf8').toString('base64'),
+      'X-Forge-Buyer-Signature': signature,
+    },
+  });
+  if (!res.ok) {
+    throw new Error(
+      `forge buyer purchases HTTP ${res.status}: ${await readForgeApiError(res)}`,
+    );
+  }
+  const data = (await res.json()) as {
+    items: Record<string, unknown>[];
+    total: number;
+  };
+  return {
+    total: data.total,
+    items: data.items.map(parseBuyerPurchase),
+  };
 }
 
 export async function forgePreviewMeta(

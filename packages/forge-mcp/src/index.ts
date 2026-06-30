@@ -11,14 +11,17 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { Keypair } from '@solana/web3.js';
+import { Connection, Keypair, VersionedTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
 import {
   createForgePayFetch,
   forgeBuy,
   forgeDelist,
   forgePreviewMeta,
+  forgeProvisionVaultTx,
   forgePublish,
+  forgeRedownload,
+  forgeSaleFeedback,
   forgeSearch,
   forgeVaultStatus,
 } from '@http402/forge-client';
@@ -52,6 +55,10 @@ function loadKeypair(): Keypair | null {
 
 const forgeApiBase = env('FORGE_API_BASE', 'https://forge.http402.trade');
 const facilitatorBase = env('FACILITATOR_BASE', 'https://ipay.sh');
+const rpcUrl =
+  process.env.FORGE_RPC_URL?.trim() ??
+  process.env.SOLANA_RPC_URL?.trim() ??
+  'https://api.mainnet-beta.solana.com';
 const payer = loadKeypair();
 const pay402Fetch = payer
   ? createForgePayFetch(payer, facilitatorBase)
@@ -99,6 +106,30 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
+      name: 'forge_redownload',
+      description: 'Re-download a prior purchase (requires FORGE_SECRET_KEY)',
+      inputSchema: {
+        type: 'object',
+        properties: { listing_id: { type: 'string' } },
+        required: ['listing_id'],
+      },
+    },
+    {
+      name: 'forge_feedback',
+      description: 'Submit purchase feedback (requires FORGE_SECRET_KEY)',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          sale_id: { type: 'string' },
+          signal: {
+            type: 'string',
+            enum: ['as_described', 'corrupt', 'misleading', 'hash_mismatch'],
+          },
+        },
+        required: ['sale_id', 'signal'],
+      },
+    },
+    {
       name: 'forge_publish',
       description: 'Publish listing (requires FORGE_SECRET_KEY)',
       inputSchema: {
@@ -109,6 +140,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           price_usdc: { type: 'string' },
           category: { type: 'string' },
           description: { type: 'string' },
+          display_name: { type: 'string' },
+          preview_path: { type: 'string' },
+          tags: { type: 'string' },
+          license: { type: 'string' },
           agent_friendly: { type: 'boolean' },
         },
         required: ['asset_path', 'title', 'price_usdc'],
@@ -127,6 +162,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       name: 'forge_vault_status',
       description: 'Seller SplitVault status (requires FORGE_SECRET_KEY)',
       inputSchema: { type: 'object', properties: {} },
+    },
+    {
+      name: 'forge_vault_activate',
+      description: 'Build SplitVault provision tx (requires FORGE_SECRET_KEY)',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          asset: { type: 'string' },
+          send: { type: 'boolean', description: 'Sign and broadcast via FORGE_RPC_URL' },
+        },
+      },
     },
   ],
 }));
@@ -200,6 +246,54 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
+    if (name === 'forge_redownload') {
+      const kp = requirePayer();
+      const id = String(a.listing_id ?? '');
+      const { bytes, contentType, saleId } = await forgeRedownload({
+        forgeApiBase,
+        listingId: id,
+        buyerWallet: kp.publicKey.toBase58(),
+        buyerKeypair: kp,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                listing_id: id,
+                sale_id: saleId ?? null,
+                bytes: bytes.length,
+                content_type: contentType,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    }
+
+    if (name === 'forge_feedback') {
+      const kp = requirePayer();
+      const saleId = String(a.sale_id ?? '');
+      const signal = String(a.signal ?? '') as
+        | 'as_described'
+        | 'corrupt'
+        | 'misleading'
+        | 'hash_mismatch';
+      await forgeSaleFeedback({
+        forgeApiBase,
+        saleId,
+        buyerWallet: kp.publicKey.toBase58(),
+        buyerKeypair: kp,
+        outcome: signal,
+      });
+      return {
+        content: [{ type: 'text', text: JSON.stringify({ sale_id: saleId, signal }) }],
+      };
+    }
+
     if (name === 'forge_publish') {
       const kp = requirePayer();
       const listing = await forgePublish({
@@ -210,6 +304,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         priceUsdc: String(a.price_usdc ?? ''),
         category: a.category ? String(a.category) : 'art',
         description: a.description ? String(a.description) : undefined,
+        displayName: a.display_name ? String(a.display_name) : undefined,
+        previewPath: a.preview_path ? String(a.preview_path) : undefined,
+        tags: a.tags ? String(a.tags) : undefined,
+        license: a.license ? String(a.license) : undefined,
         agentFriendly: Boolean(a.agent_friendly),
       });
       return { content: [{ type: 'text', text: JSON.stringify(listing, null, 2) }] };
@@ -229,6 +327,29 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         sellerWallet: kp.publicKey.toBase58(),
       });
       return { content: [{ type: 'text', text: JSON.stringify(status, null, 2) }] };
+    }
+
+    if (name === 'forge_vault_activate') {
+      const kp = requirePayer();
+      const wallet = kp.publicKey.toBase58();
+      const provision = await forgeProvisionVaultTx({
+        forgeApiBase,
+        sellerWallet: wallet,
+        asset: a.asset ? String(a.asset) : 'USDC',
+      });
+      if (a.send === true) {
+        const txB64 = String((provision as { transaction?: string }).transaction ?? '');
+        if (!txB64) throw new Error('provision-tx response missing transaction field');
+        const tx = VersionedTransaction.deserialize(Buffer.from(txB64, 'base64'));
+        tx.sign([kp]);
+        const conn = new Connection(rpcUrl, 'confirmed');
+        const sig = await conn.sendTransaction(tx);
+        await conn.confirmTransaction(sig, 'confirmed');
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ signature: sig, wallet }) }],
+        };
+      }
+      return { content: [{ type: 'text', text: JSON.stringify(provision, null, 2) }] };
     }
 
     return {
