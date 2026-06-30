@@ -1,6 +1,6 @@
 {
   "name": "@http402/forge-client",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "TypeScript SDK for http402 Forge Digital Bazaar — buy, publish, delist, vault",
   "type": "module",
   "homepage": "https://github.com/miralandlabs/http402-forge-cli#readme",
